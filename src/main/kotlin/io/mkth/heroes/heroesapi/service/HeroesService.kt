@@ -2,6 +2,8 @@ package io.mkth.heroes.heroesapi.service
 
 import io.mkth.heroes.heroesapi.exception.HeroesException
 import io.mkth.heroes.heroesapi.model.Heroes
+import io.mkth.heroes.heroesapi.model.HeroesDTO
+import io.mkth.heroes.heroesapi.model.mapper.HeroesMapper
 import io.mkth.heroes.heroesapi.repository.HeroesRepository
 import org.springframework.stereotype.Service
 import reactor.core.publisher.Flux
@@ -9,7 +11,8 @@ import reactor.core.publisher.Mono
 import reactor.kotlin.core.publisher.switchIfEmpty
 
 @Service
-class HeroesService(private val heroesRepository: HeroesRepository) {
+class HeroesService(private val heroesRepository: HeroesRepository,
+                    private val heroesMapper: HeroesMapper) {
 
     fun getHeroesByUserId(userId: String) : Mono<Heroes> {
         return heroesRepository.findByUserId(userId)
@@ -24,9 +27,12 @@ class HeroesService(private val heroesRepository: HeroesRepository) {
                 .onErrorResume { Mono.error(HeroesException("Failed a creation")) }
     }
 
-    fun updateHero(name: String, hero: Heroes): Mono<Heroes> {
-        return getHeroesByUserId(name)
-                .flatMap { heroesRepository.save(hero) }
+    fun updateHero(userId: String, updatehero: HeroesDTO): Mono<Heroes> {
+        return getHeroesByUserId(userId)
+                .map { mergeBetween(it, updatehero) }
+                .flatMap { heroesRepository.save(it) }
+                .switchIfEmpty { Mono.error(HeroesException("Hero not found")) }
+                .onErrorResume { Mono.error(HeroesException("Failed update")) }
     }
 
     fun deletebyID(id: String): Mono<Void> {
@@ -34,8 +40,11 @@ class HeroesService(private val heroesRepository: HeroesRepository) {
                 .flatMap { heroesRepository.deleteById(id) }
     }
 
-    fun verifyHeroExists(userId: String): Mono<Heroes> {
-        return getHeroesByUserId(userId)
-                .switchIfEmpty { Mono.error(Exception()) }
+    private fun mergeBetween(savedHero: Heroes, updateHero: HeroesDTO) : Heroes {
+        return Heroes(id = savedHero.id,
+                userId = savedHero.userId,
+                name = updateHero.name,
+                universe = updateHero.universe,
+                films = updateHero.films)
     }
 }

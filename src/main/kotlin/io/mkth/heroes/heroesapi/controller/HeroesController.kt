@@ -3,6 +3,7 @@ package io.mkth.heroes.heroesapi.controller
 import org.springframework.http.HttpStatus
 import reactor.core.publisher.Mono
 import io.mkth.heroes.heroesapi.model.Heroes
+import io.mkth.heroes.heroesapi.model.UpdateHeroes
 import io.mkth.heroes.heroesapi.service.HeroesService
 import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.*
@@ -28,6 +29,11 @@ class HeroesController(private val heroesService: HeroesService) {
     @ResponseStatus(HttpStatus.CREATED)
     fun createHero(@RequestBody heroes: Heroes): Mono<Heroes> {
         return heroesService.createHero(heroes)
+    }
+
+    @PutMapping("/heroes")
+    fun updateHeroes(@RequestBody updateHero: UpdateHeroes): Mono<Heroes> {
+        return heroesService.updateHero(updateHero.userId, updateHero.hero)
     }
 
     @DeleteMapping("/heroes/{id}")
